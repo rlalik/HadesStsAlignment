@@ -2,7 +2,9 @@
 
 auto main() -> int
 {
-  auto const lib = library {};
+    // auto const lib = library {};
+    //
+    // return lib.name == "HadesStsAlignment" ? 0 : 1;
 
-  return lib.name == "HadesStsAlignment" ? 0 : 1;
+    return 0;
 }

@@ -1,5 +1,5 @@
 install(
-    TARGETS HadesStsAlignment_exe
+    TARGETS HadesStsAlignment_exe HadesParamUpdater_exe
     RUNTIME COMPONENT HadesStsAlignment_Runtime
 )
 

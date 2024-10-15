@@ -58,14 +58,20 @@ using std::endl;
 
 int library::verbose = 0;
 
-library::library(HLoop* loop, const std::string& output_file, const std::string& root_par, const std::string& ascii_par)
+library::library(HLoop* loop,
+                 const std::string& output_file,
+                 const std::string& root_par,
+                 const std::string& ascii_par,
+                 const std::string& log_file_name)
     : loop {loop}
-    , mille("sts_", output_file.data(), true, true)
+    , pro_mille("sts_", output_file.data())
+    , straw_planes(pro_mille.make_model_planes<hsa::sts_residual<float, promille::euler::zyz>>())
 {
-    mille.set_verbose(verbose);
+    pro_mille.set_verbose(verbose);
 
     BeamX = TH1I("Beam_X", "beam (X)", 100, -20, 20);
     BeamY = TH1I("Beam_Y", "beam (Y)", 100, -20, 20);
+    BeamXY = TH2I("Beam_XY", "beam (XY)", 100, -20, 20, 100, -20, 20);
     BeamZ = TH1I("Beam_Z", "beam (Z)", 200, -200, 00);
 
     if (!loop->setInput("-*,+HParticleCand,+HForwardCand,+HStsCal,+HFRpcHit,+HStart2Hit")) {  // reading file structure
@@ -144,46 +150,148 @@ library::library(HLoop* loop, const std::string& output_file, const std::string&
                 stsCellsLoc[m][l][c] = nullptr;
             }
 
-    mb::Kind free_mask_globals[2][4][6] = {
+    // clang-format off
+    std::array<promille::Kind, 12> free_mask_globals[2][4] = {
         {
-            {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
-            {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
-            {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
-            {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
-        },
-        {
-            {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
-            {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
-            {mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
-            {mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FIXED},
+            {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            },
+        },{
+            {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            },
         }};
+    // clang-format on
 
-    mb::Kind free_mask_locals[2][4][4] = {{
-                                              {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED},
-                                              {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE},
-                                              {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE},
-                                              {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED},
-                                          },
-                                          {
-                                              {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED},
-                                              {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE},
-                                              {mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FREE},
-                                              {mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FREE},
-                                          }};
-    // Also with alpha correction
-    // mb::Kind free_mask_globals[2][4][6] = {
+    // // clang-format off
+    // std::array<promille::Kind, 12> free_mask_globals[2][4] = {
     //     {
-    //         {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
-    //         {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
-    //         {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
-    //         {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
+    //         {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED
+    //         }, {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED
+    //         }, {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED
+    //         }, {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED
+    //         },
+    //     },{
+    //         {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED
+    //         }, {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED,promille::Kind::FIXED
+    //         }, {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED
+    //         }, {
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+    //             promille::Kind::FIXED, promille::Kind::FIXED
+    //         },
+    //     }};
+    // // clang-format on
+
+    // std::array<promille::Kind, 4> free_mask_locals[2][4] = {
+    //     {
+    //         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED},
+    //         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE},
+    //         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE},
+    //         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED},
     //     },
     //     {
-    //         {mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
-    //         {mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
-    //         {mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
-    //         {mb::Kind::FREE, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FREE, mb::Kind::FIXED, mb::Kind::FIXED},
+    //         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED},
+    //         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE},
+    //         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+    //         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
     //     }};
+
+    // std::array<promille::Kind, 4> free_mask_locals[2][4] = {
+    //     {
+    //         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED},
+    //         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+    //         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+    //         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED},
+    //     },
+    //     {
+    //         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED},
+    //         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+    //         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+    //         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+    //     }};
+
+    std::array<promille::Kind, 4> free_mask_locals[2][4] = {
+        {
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+        },
+        {
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+            {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+        }};
+
+    pro_mille.add_global_parameter(1, 0, "Txg1");
+    pro_mille.add_global_parameter(2, 0, "Tyg1");
+    pro_mille.add_global_parameter(3, 0, "Tzg1");
+    pro_mille.add_global_parameter(5, 0, "Rag1");
+    pro_mille.add_global_parameter(6, 0, "Rbg1");
+    pro_mille.add_global_parameter(7, 0, "Rcg1");
+
+    // elastics scattering plane
+    // mille.add_plane<hsa::sts_residual<float, promille::euler::zyz>>(0, 1, 2, 3, 5, 6, 7, 11, 12, 13, 15, 16, 17)
+    //     .set_globals_configuration(promille::Kind::FREE,
+    //                                promille::Kind::FREE,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED,
+    //                                promille::Kind::FIXED)
+    //     .set_locals_configuration(promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE)
+    //     .get_model()->set_local_params(0, 0, 0, 0, 0, 0);
+
+    // straws planes
+    straw_planes.set_verbose(verbose);
 
     HGeomVector noTrans(0, 0, 0);
     for (Int_t m = 0; m < STS_MAX_MODULES; ++m) {
@@ -199,18 +307,6 @@ library::library(HLoop* loop, const std::string& output_file, const std::string&
                     rxy[iy * 3 + ix] = labTrans.getRotMatrix().getElement(ix, iy);
                 }
             }
-
-            // Rotation3D r3d(rxy.begin(), rxy.end());
-            // RotationZYX rzyx(r3d);
-            // ROOT::Math::EulerAngles ea(r3d);
-            // cout << r3d << rzyx << ea;
-
-            // labTrans.print();
-            // labTrans.getRotMatrix().print();
-
-            // auto alpha = atan2(labTrans.getRotMatrix().getElement(1,2), labTrans.getRotMatrix().getElement(0, 2));
-            // auto beta = atan2(sqrt(1.0 - pow(labTrans.getRotMatrix().getElement(2,2), 2)), labTrans.getRotMatrix().getElement(2, 2));
-            // auto gamma = atan2(-labTrans.getRotMatrix().getElement(2,1), labTrans.getRotMatrix().getElement(2, 0));
 
             auto alpha = atan2(-labTrans.getRotMatrix().getElement(0, 1), labTrans.getRotMatrix().getElement(1, 1));
             auto beta = atan2(labTrans.getRotMatrix().getElement(2, 1), labTrans.getRotMatrix().getElement(2, 2));
@@ -237,23 +333,30 @@ library::library(HLoop* loop, const std::string& output_file, const std::string&
                        labTrans.getTransVector().getZ());
             }
 
-            mille.add_globals_set((m + 1) * 10 + (l + 1),
-                                  {0, free_mask_globals[m][l][0]},
-                                  {0, free_mask_globals[m][l][1]},
-                                  {0, free_mask_globals[m][l][2]},
-                                  {0, free_mask_globals[m][l][3]},
-                                  {0, free_mask_globals[m][l][4]},
-                                  {0, free_mask_globals[m][l][5]},
-                                  labTrans.getTransVector().getX(),
+            straw_planes
+                .add_plane((m + 1) * 100 + (l + 1) * 10,
+                           1,
+                           2,
+                           3,
+                           5,
+                           6,
+                           7,
+                           pro_mille.add_global_parameter((m + 1) * 100 + (l + 1) * 10 + 1, 0, "Txc"),
+                           pro_mille.add_global_parameter((m + 1) * 100 + (l + 1) * 10 + 2, 0, "Tyc"),
+                           pro_mille.add_global_parameter((m + 1) * 100 + (l + 1) * 10 + 3, 0, "Tzc"),
+                           pro_mille.add_global_parameter((m + 1) * 100 + (l + 1) * 10 + 5, 0, "Rac"),
+                           pro_mille.add_global_parameter((m + 1) * 100 + (l + 1) * 10 + 6, 0, "Rbc"),
+                           pro_mille.add_global_parameter((m + 1) * 100 + (l + 1) * 10 + 7, 0, "Rcc"))
+                .set_globals_configuration(free_mask_globals[m][l])
+                .set_locals_configuration(free_mask_locals[m][l])
+                .set_verbose(verbose)
+                .model()
+                .set_local_params(labTrans.getTransVector().getX(),
                                   labTrans.getTransVector().getY(),
                                   labTrans.getTransVector().getZ(),
                                   alpha,
                                   beta,
-                                  gamma,
-                                  free_mask_locals[m][l][0],
-                                  free_mask_locals[m][l][1],
-                                  free_mask_locals[m][l][2],
-                                  free_mask_locals[m][l][3]);
+                                  gamma);
 
             if (cosa[m][l] < 0) {
                 cosa[m][l] = -cosa[m][l];
@@ -282,7 +385,7 @@ library::library(HLoop* loop, const std::string& output_file, const std::string&
         }
     }
 
-    mille.write_param_file();
+    pro_mille.write_param_file();
 
     fGeantKine = HCategoryManager::getCategory(catGeantKine, kTRUE, "catGeantKine");
 
@@ -312,6 +415,10 @@ library::library(HLoop* loop, const std::string& output_file, const std::string&
     // Checking if ParticleCand and ForwardCand are open
     if (!fParticleCand or !fForwardCand)
         abort();
+
+    if (log_file_name.length()) {
+        log_file = std::ofstream(log_file_name, std::ios::out);
+    }
 }
 
 auto library::check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Float_t thetap_diff_min, Float_t thetap_diff_max)
@@ -331,7 +438,6 @@ auto library::check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Floa
 
     if (!cand2->isFlagBit(HForward::kIsUsed) or !cand1->isFlagBit(Particle::kIsUsed)) {
         return {NOTUSED, 0, 0};
-        ;
     }
 
     const auto t_phi_P1 = cand1->getPhi();  // [deg]
@@ -413,34 +519,87 @@ auto library::execute(long long events) -> void
 {
     // Popup the GUI...
     gStyle->SetOptStat(1);
-    const char* datafile = 0;
 
-    TH1I* h_delta_phi = new TH1I("h_delta_phi", "h_delta_phi", 400, 0, 200);
-    TH1I* h_tan_prod = new TH1I("h_tan_prod", "h_tan_prod", 400, 0, 1);
-    TH1I* h_elastic_error = new TH1I("h_elastic_error", "h_elastic_error", 7, 0, 7);
-    TH2I* h_elastic_mult = new TH2I("h_elastic_mult", "h_elastic_mult", 10, 0, 10, 10, 0, 10);
-    // TH2I* h_fcand_delta = new TH2I("h_fcand_delta", "h_fcand_delta", 200, -50, 50, 200, -50, 50);
-    TH2I* h_fcand_txty = new TH2I("h_fcand_txty", "h_fcand_txty;tx;ty", 200, -0.2, 0.2, 200, -0.2, 0.2);
-    TH2I* h_fcand_theta_phi = new TH2I("h_fcand_theta_phi", "h_fcand_theta_phi;phi [deg];theta [deg]", 360, 0, 360, 200, 0, 10);
-    TH2I* h_fproj_txty = new TH2I("h_fproj_txty", "h_fproj_txty;tx;ty", 200, -0.2, 0.2, 200, -0.2, 0.2);
-    TH2I* h_fproj_vert = new TH2I("h_fproj_vert", "h_fproj_vert;x [mm];y [mm]", 200, -0.2, 0.2, 200, -0.2, 0.2);
-    TH2I* h_el_theta_phi = new TH2I("h_el_theta_phi", "h_el_theta_phi;phi [deg];theta [deg]", 100, 175, 180, 100, 0.2, 0.4);
-    TH2I* h_el_theta_phi_rejected =
-        new TH2I("h_el_theta_phi_rejected", "h_el_theta_phi_rejected;phi [deg];theta [deg]", 180, 0, 180, 100, 0, 1);
-    TH2I* h_el_theta_phi_all = new TH2I("h_el_theta_phi_all", "h_el_theta_phi_all;phi [deg];theta [deg]", 180, 0, 180, 100, 0, 1);
-    TH2I* h_proj_diff_theta_phi =
-        new TH2I("h_proj_diff_theta_phi", "h_proj_diff_theta_phi;#Delta phi [deg];#Delta theta [deg]", 100, -4, 4, 100, -2, 2);
-    TH1I* h_p1_p2_dist = new TH1I("h_p1_p2_dist", "h_p1_p2_dist;dist [mm];counts", 100, 0, 15);
-    TH1I* h_p1_beam_dist = new TH1I("h_p1_beam_dist", "h_p1_beam_dist;dist [mm];counts", 100, 0, 15);
+    TH2I* h_vert_reco_xy {nullptr};
+    TH1I* h_vert_reco_z {nullptr};
+
+    TH1I* h_fcand_chi2_ndf {nullptr};
+
+    TH1I* h_delta_phi {nullptr};
+    TH1I* h_tan_prod {nullptr};
+    TH1I* h_elastic_error {nullptr};
+    TH2I* h_elastic_mult {nullptr};
+
+    TH2I* h_fcand_txty {nullptr};
+    TH2I* h_fcand_theta_phi {nullptr};
+    TH2I* h_fproj_txty {nullptr};
+    TH2I* h_fproj_vert {nullptr};
+    TH2I* h_el_theta_phi {nullptr};
+    TH2I* h_el_theta_phi_rejected {nullptr};
+    TH2I* h_el_theta_phi_all {nullptr};
+    TH2I* h_proj_diff_theta_phi {nullptr};
+    TH1I* h_p1_p2_dist {nullptr};
+    TH1I* h_p1_beam_dist {nullptr};
+
+    TH1I* h_qa_sign {nullptr};
+    TH1I* h_qa_t_d_dist {nullptr};
+    TH1I* h_qa_drift_dist {nullptr};
+    TH1I* h_qa_residuals {nullptr};
+    TH1I* h_qa_uresiduals {nullptr};
+
+    TH2I* h_qa_sign_plane {nullptr};
+    TH2I* h_qa_t_d_dist_plane {nullptr};
+    TH2I* h_qa_drift_dist_plane {nullptr};
+    TH2I* h_qa_residuals_plane {nullptr};
+    TH2I* h_qa_uresiduals_plane {nullptr};
+
+    if (qa_file.length()) {
+        h_vert_reco_xy = new TH2I("h_vert_reco_xy", "h_vert_reco_xy", 100, -20, 20, 400, -20, 20);
+        h_vert_reco_z = new TH1I("h_vert_reco_z", "h_vert_reco_z", 200, -200, 0);
+
+        h_fcand_chi2_ndf = new TH1I("h_fcand_chi2_ndf", "h_fcand_chi2_ndf", 50, 0, 5);
+
+        h_delta_phi = new TH1I("h_delta_phi", "h_delta_phi", 200, 170, 190);
+        h_tan_prod = new TH1I("h_tan_prod", "h_tan_prod", 400, 0, 1);
+        h_elastic_error = new TH1I("h_elastic_error", "h_elastic_error", 7, 0, 7);
+        h_elastic_mult = new TH2I("h_elastic_mult", "h_elastic_mult", 10, 0, 10, 10, 0, 10);
+        // TH2I* h_fcand_delta = new TH2I("h_fcand_delta", "h_fcand_delta", 200, -50, 50, 200, -50, 50);
+        h_fcand_txty = new TH2I("h_fcand_txty", "h_fcand_txty;tx;ty", 200, -0.2, 0.2, 200, -0.2, 0.2);
+        h_fcand_theta_phi = new TH2I("h_fcand_theta_phi", "h_fcand_theta_phi;phi [deg];theta [deg]", 360, 0, 360, 200, 0, 10);
+        h_fproj_txty = new TH2I("h_fproj_txty", "h_fproj_txty;tx;ty", 200, -0.2, 0.2, 200, -0.2, 0.2);
+        h_fproj_vert = new TH2I("h_fproj_vert", "h_fproj_vert;x [mm];y [mm]", 200, -0.2, 0.2, 200, -0.2, 0.2);
+        h_el_theta_phi = new TH2I("h_el_theta_phi", "h_el_theta_phi;phi [deg];theta [deg]", 100, 175, 180, 100, 0.2, 0.4);
+        h_el_theta_phi_rejected =
+            new TH2I("h_el_theta_phi_rejected", "h_el_theta_phi_rejected;phi [deg];theta [deg]", 180, 0, 180, 100, 0, 1);
+        h_el_theta_phi_all = new TH2I("h_el_theta_phi_all", "h_el_theta_phi_all;phi [deg];theta [deg]", 180, 0, 180, 100, 0, 1);
+        h_proj_diff_theta_phi =
+            new TH2I("h_proj_diff_theta_phi", "h_proj_diff_theta_phi;#Delta phi [deg];#Delta theta [deg]", 100, -4, 4, 100, -2, 2);
+        h_p1_p2_dist = new TH1I("h_p1_p2_dist", "h_p1_p2_dist;dist [mm];counts", 100, 0, 15);
+        h_p1_beam_dist = new TH1I("h_p1_beam_dist", "h_p1_beam_dist;dist [mm];counts", 100, 0, 15);
+
+        h_qa_sign = new TH1I("h_qa_sign", "h_qa_sign;sign;counts", 2, -1, 2);
+        h_qa_t_d_dist = new TH1I("h_qa_t_d_dist", "h_qa_t_d_dist;track-wire distance [mm];counts", 100, 0, 10);
+        h_qa_drift_dist = new TH1I("h_qa_drift_dist", "h_qa_drift_dist;track-wire distance [mm];counts", 100, 0, 10);
+        h_qa_residuals = new TH1I("h_qa_residuals", "h_qa_residuals;residuals [mm];counts", 100, -1, 1);
+        h_qa_uresiduals = new TH1I("h_qa_uresiduals", "h_qa_uresiduals;residuals [mm];counts", 100, -1, 1);
+
+        h_qa_sign_plane = new TH2I("h_qa_sign_plane", "h_qa_sign_plane;sign;plane;counts", 3, -1, 2, 8, 1, 9);
+        h_qa_t_d_dist_plane =
+            new TH2I("h_qa_t_d_dist_plane", "h_qa_t_d_dist_plane;track-wire distance [mm];plane;counts", 100, 0, 10, 8, 1, 9);
+        h_qa_drift_dist_plane =
+            new TH2I("h_qa_drift_dist_plane", "h_qa_drift_dist_plane;track-wire distance [mm];plane;counts", 100, 0, 10, 8, 1, 9);
+        h_qa_residuals_plane = new TH2I("h_qa_residuals_plane", "h_qa_residuals_plane;residuals [mm];plane;counts", 100, -1, 1, 8, 1, 9);
+        h_qa_uresiduals_plane = new TH2I("h_qa_uresiduals_plane", "h_qa_uresiduals_plane;residuals [mm];plane;counts", 100, -1, 1, 8, 1, 9);
+    }
 
     auto nevts = events == 0 ? loop->getEntries() : min(events, loop->getEntries());
 
     bool sim = (fGeantKine != nullptr);
 
     if (sim) {
-        printf("*** SIM MOE ***\n");
+        printf("*** SIM MODE ***\n");
     } else {
-        printf("*** EXP MOE ***\n");
+        printf("*** EXP MODE ***\n");
     }
 
     auto beam_avg = find_beam_avgs(10000);
@@ -463,7 +622,7 @@ auto library::execute(long long events) -> void
     const Double_t beam_p01 = sqrt(pow(beam_E01, 2) - pow(proton_mass, 2));  // Momentum of beam particle [MeV/c]
     const Double_t inverse_gamma2 = 1.0 / (beam_gamma_cm * beam_gamma_cm);  // 0.29429;
 
-    mille.print(true);
+    pro_mille.print();
 
     long good_vectors_count = 0;
 
@@ -474,7 +633,16 @@ auto library::execute(long long events) -> void
     if (!fForwardCand)
         abort();
 
-    printf("Events to analyze: %lld\n", nevts);
+    const bool use_beam_tilt = beam_tilt && !sim;
+
+    std::cout << "============= CONFIG =============\n"
+              << " Beam tilt: " << use_beam_tilt;
+    if (beam_tilt && sim) {
+        std::cout << " (tilt enabled but disabled by sim)";
+    }
+    std::cout << '\n';
+    std::cout << " Project: " << project << "\n Events to analyze: " << nevts << "\n============= CONFIG =============\n";
+
     for (int event = 0l; event < nevts; ++event) {
         loop->nextEvent(event);
         if (event % 10000 == 0)
@@ -516,10 +684,6 @@ auto library::execute(long long events) -> void
         TVector3 tilted_dir = beam->Vect();  //(beam->X(), beam->Y(), beam->Z());
         tilted_dir *= 1. / tilted_dir.Z();
 
-        // check conditions for elastics scattering
-
-        // auto [res, phi_diff, theta_tan_prod] = check_elastics_hf(175, 185, inverse_gamma2 - 0.1, inverse_gamma2 + 0.1);
-
         float el_phi_min, el_phi_max, el_theta_min, el_theta_max;
         if (sim) {
             el_phi_min = 179.;
@@ -533,13 +697,15 @@ auto library::execute(long long events) -> void
             el_theta_max = inverse_gamma2 + 0.05;
         }
 
+        // check conditions for elastics scattering
         auto [res, phi_diff, theta_tan_prod] =
             check_elastics_hf(phiDeg, thDeg, f_cand->getPhi(), f_cand->getTheta(), el_phi_min, el_phi_max, el_theta_min, el_theta_max);
 
-        h_elastic_error->Fill(res);
-        h_elastic_mult->Fill(fParticleCand->getEntries(), fForwardCand->getEntries());
-
-        h_el_theta_phi_all->Fill(phi_diff, theta_tan_prod);
+        if (qa_file.length()) {
+            h_elastic_error->Fill(res);
+            h_elastic_mult->Fill(fParticleCand->getEntries(), fForwardCand->getEntries());
+            h_el_theta_phi_all->Fill(phi_diff, theta_tan_prod);
+        }
 
         if (res != OK) {
             if (res == NOCAT)
@@ -553,14 +719,12 @@ auto library::execute(long long events) -> void
                     rejected[4]++;
                 if (res == NOACC)
                     rejected[5]++;
-                h_el_theta_phi_rejected->Fill(phi_diff, theta_tan_prod);
+                if (qa_file.length()) {
+                    h_el_theta_phi_rejected->Fill(phi_diff, theta_tan_prod);
+                }
             }
             continue;
         }
-
-        h_delta_phi->Fill(phi_diff);
-        h_tan_prod->Fill(theta_tan_prod);
-        h_el_theta_phi->Fill(phi_diff, theta_tan_prod);
 
         // printf("Angles tilt correction: phi  %f -> %f   theta %f -> %f\n", p_cand->getPhi(), phiDeg, p_cand->getTheta(), thDeg);
         // beam->Print();
@@ -568,15 +732,6 @@ auto library::execute(long long events) -> void
 
         // if (sim and fcand->getChi2()/fcand->getNDF() > 0.8) continue;
         // if (!sim and fcand->getChi2()/fcand->getNDF() > 2.0) continue;
-
-        if (sim and f_cand->getChi2() / f_cand->getNDF() > 0.5) {
-            rejected[6]++;
-            continue;
-        }
-        if (!sim and f_cand->getChi2() / f_cand->getNDF() > 1.0) {
-            rejected[6]++;
-            continue;
-        }
 
         p_cand->calc4vectorProperties(HPhysicsConstants::mass(14));
         f_cand->calc4vectorProperties(HPhysicsConstants::mass(14));
@@ -587,11 +742,13 @@ auto library::execute(long long events) -> void
          * 3. Check the distance |p_H - beam_avg| < CUT
          * 4. b_F = POCA(p_H, p_F)
          *
-         * 5. Project p_F' as p_beam - p_H:
-         *    a. beam_tilt==1 - use tilted beam
-         *    b. beam_tilt==0 - use (0,0,1) beam vector
+         * 5. if (project):
+         *      p_F' = p_beam - p_H:
+         *    else
+         *      p_F' = p_F,
          *
-         * 6. Hack: p_F' = p_F,
+         * 6. a. beam_tilt==1 - use tilted beam
+         *    b. beam_tilt==0 - use (0,0,1) beam vector
          *
          */
 
@@ -613,66 +770,48 @@ auto library::execute(long long events) -> void
 
         HGeomVector be_base(the_vertex);
         HGeomVector be_dir(0, 0, 1);
-        if (beam_tilt) {
+
+        if (use_beam_tilt) {
             be_dir = HGeomVector(beam->X() / beam->Z(), beam->Y() / beam->X(), 1.0);
         }
 
         // STEP 2+3
         auto dist_beam_p1 = HParticleTool::calculateMinimumDistance(p1_base, p1_dir, be_base, be_dir);
-
         auto dist_p1_p2 = HParticleTool::calculateMinimumDistance(p1_base, p1_dir, p2_base, p2_dir);
 
-        h_p1_beam_dist->Fill(dist_beam_p1);
-        h_p1_p2_dist->Fill(dist_p1_p2);
-
-        if (sim and dist_beam_p1 > 0.5) {
-            rejected[7]++;
-            continue;
-        }
-
-        if (!sim and dist_beam_p1 > 0.5) {
-            rejected[7]++;
-            continue;
-        }
-
-        if (sim and dist_p1_p2 > 0.5) {
-            rejected[8]++;
-            continue;
-        }
-
-        if (!sim and dist_p1_p2 > 0.5) {
-            rejected[8]++;
-            continue;
-        }
-
         // STEP 5
+        TVector3 the_track;
+        HGeomVector the_base;
 
-        // Define reference beam vector
-        TLorentzVector beam_lvec;
-        beam_lvec.SetPxPyPzE(0, 0, beam_p01, beam_E01);
-
-        // find expected elastics vector
-        auto miss_lvec = (beam_tilt ? *beam : beam_lvec) - *p_cand;
-
-        // Extract direction and normalize to Z() == 1.0
-        auto the_track = miss_lvec.Vect();
-        the_track *= 1. / the_track.Z();
-
-        // Calculate BASE for F-track, project it to Z=0
-        auto the_base = the_vertex;
-        the_base = HGeomVector(the_base.X() - the_track.X() * the_base.Z(), the_base.Y() - the_track.Y() * the_base.Z(), 0.);
-
-        h_fcand_txty->Fill(p2_dir.X() / p2_dir.Z(), p2_dir.Y() / p2_dir.Z());
-        h_fproj_txty->Fill(the_track.X() / the_track.Z(), the_track.Y() / the_track.Z());
-        h_fproj_vert->Fill(the_base.X(), the_base.Y());
-        h_fcand_theta_phi->Fill(f_cand->getPhi(), f_cand->getTheta());
-
-        if (hack) {
+        if (!project) {
             the_track = TVector3(p2_dir.X(), p2_dir.Y(), p2_dir.Z());
-            ;
             the_track *= 1. / the_track.Z();
             the_base = HGeomVector(p2_base.X() - the_track.X() * p2_base.Z(), p2_base.Y() - the_track.Y() * p2_base.Z(), 0.);
+        } else {
+            // Define reference beam vector
+            TLorentzVector beam_lvec;
+            beam_lvec.SetPxPyPzE(0, 0, beam_p01, beam_E01);
+
+            // Find expected elastics vector
+            auto miss_lvec = (beam_tilt ? *beam : beam_lvec) - *p_cand;
+
+            // Extract direction and normalize to Z() == 1.0
+            the_track = miss_lvec.Vect();
+            the_track *= 1. / the_track.Z();
+
+            // Calculate BASE for F-track, project it to Z=0
+            the_base = HGeomVector(the_vertex.X() - the_track.X() * the_vertex.Z(), the_vertex.Y() - the_track.Y() * the_vertex.Z(), 0.);
         }
+
+        // mille.add_measurement(0,
+        //                       1.0,
+        //                       hsa::XYZPoint(the_base.X() - the_track.X() * the_base.Z(), the_base.Y() - the_track.Y() * the_base.Z(), 0),
+        //                       hsa::XYZVector(the_track.X() / the_track.Z(), the_track.Y() / the_track.Z(), 1),
+        //                       0,
+        //                       0,
+        //                       0,
+        //                       dist_p1_p2,
+        //                       1.0);
 
         auto proj_phi_diff = f_cand->getPhi() - the_track.Phi() * TMath::RadToDeg();
         if (proj_phi_diff > 180)
@@ -682,18 +821,74 @@ auto library::execute(long long events) -> void
             proj_theta_diff += -180;
 
         // printf("ANG DIFF: %f %f\n", proj_phi_diff, proj_theta_diff);
-        h_proj_diff_theta_phi->Fill(proj_phi_diff, proj_theta_diff);
+        if (qa_file.length()) {
+            h_vert_reco_xy->Fill(be_base.X(), be_base.Y());
+            h_vert_reco_z->Fill(be_base.Z());
+
+            h_fcand_chi2_ndf->Fill(f_cand->getChi2() / f_cand->getNDF());
+
+            h_p1_beam_dist->Fill(dist_beam_p1);
+            h_p1_p2_dist->Fill(dist_p1_p2);
+
+            h_delta_phi->Fill(phi_diff);
+            h_tan_prod->Fill(theta_tan_prod);
+            h_el_theta_phi->Fill(phi_diff, theta_tan_prod);
+
+            h_fcand_txty->Fill(p2_dir.X() / p2_dir.Z(), p2_dir.Y() / p2_dir.Z());
+            h_fproj_txty->Fill(the_track.X() / the_track.Z(), the_track.Y() / the_track.Z());
+            h_fproj_vert->Fill(the_base.X(), the_base.Y());
+            h_fcand_theta_phi->Fill(f_cand->getPhi(), f_cand->getTheta());
+
+            h_proj_diff_theta_phi->Fill(proj_phi_diff, proj_theta_diff);
+        }
         // auto p2_p1_diff = p2_lvec - *f_cand;
+
+        if (sim and f_cand->getChi2() / f_cand->getNDF() > 0.3) {
+            rejected[6]++;
+            continue;
+        }
+        if (!sim and f_cand->getChi2() / f_cand->getNDF() > 1.0) {
+            rejected[6]++;
+            continue;
+        }
+
+        if (sim and dist_beam_p1 > 0.5) {
+            rejected[7]++;
+            // continue;
+        }
+
+        if (!sim and dist_beam_p1 > 0.5) {
+            rejected[7]++;
+            // continue;
+        }
+
+        if (sim and dist_p1_p2 > 0.5) {
+            rejected[8]++;
+            // continue;
+        }
+
+        if (!sim and dist_p1_p2 > 0.5) {
+            rejected[8]++;
+            // continue;
+        }
 
         // f_cand->print();
         // printf(" BEAM  "); beam_lvec.Print();
         if (verbose) {
-            printf(" P1-H  ");
+            printf(" P1-H    ");
             (p_cand->Vect() * (1.0 / p_cand->Vect().Z())).Print();
+            printf(" P1-H B  ");
+            p1_base.print();
+            printf(" P1-H T  ");
+            p1_dir.print();
             printf(" P2-F  ");
             (f_cand->Vect() * (1.0 / f_cand->Vect().Z())).Print();
-            printf(" P2    ");
-            (miss_lvec.Vect() * (1.0 / miss_lvec.Vect().Z())).Print();
+            printf(" P2-F B  ");
+            p2_base.print();
+            printf(" P2-F T  ");
+            p2_dir.print();
+            // printf(" P2    ");
+            // (miss_lvec.Vect() * (1.0 / miss_lvec.Vect().Z())).Print();
 
             printf("  Add: %ld   BASE   %f  %f  %f   DIR   %f  %f  %f   ALG   %f  %f  %f   RES   %f   %f\n",
                    good_vectors_count,
@@ -710,6 +905,31 @@ auto library::execute(long long events) -> void
                    0.1);
         }
 
+        // straw_planes1.plane(0).add_measurement(
+        //                       sigma,
+        //                       hsa::XYZPoint(the_base.X() - the_track.X() * the_base.Z(), the_base.Y() - the_track.Y() * the_base.Z(), 0),
+        //                       hsa::XYZVector(the_track.X() / the_track.Z(), the_track.Y() / the_track.Z(), 1),
+        //                       hsa::XYZPoint(straw_loc.getX(), straw_loc.getY(), straw_loc.getZ()),
+        //                       hsa::XYZVector(0, 1, 0),
+        //                       dr);
+
+        // straw_planes.plane(0).add_measurement(
+        //     sigma,
+        //     hsa::XYZPoint(the_base.X() - the_track.X() * the_base.Z(), the_base.Y() - the_track.Y() * the_base.Z(), 0),
+        //     hsa::XYZVector(the_track.X() / the_track.Z(), the_track.Y() / the_track.Z(), 1),
+        //     hsa::XYZPoint(straw_loc.getX(), straw_loc.getY(), straw_loc.getZ()),
+        //     hsa::XYZVector(0, 1, 0),
+        //     dr);
+
+        auto track_base = hsa::XYZPoint(the_base.X() - the_track.X() * the_base.Z(), the_base.Y() - the_track.Y() * the_base.Z(), 0);
+        auto track_dir = hsa::XYZVector(the_track.X() / the_track.Z(), the_track.Y() / the_track.Z(), 1);
+
+        if (log_file.is_open()) {
+            log_file << "===NEW_EVENT===\n";
+            log_file << "-TRACK " << track_base.x() << ' ' << track_base.y() << ' ' << track_base.z() << ' ' << track_dir.x() << ' '
+                     << track_dir.y() << ' ' << track_dir.z() << '\n';
+        }
+
         const int Nev = f_cand->getNofHits();
         for (int k = 0; k < Nev; ++k) {
             HStsCal* fstscal = HCategoryManager::getObject(fstscal, fStsCal, f_cand->getStsHitIndex(k));
@@ -719,27 +939,61 @@ auto library::execute(long long events) -> void
             fstscal->getAddress(mod, lay, straw, ud);
 
             const auto& straw_loc = *(stsCellsLoc[mod][lay][straw]);
-            // straw_loc.print();
 
             if (verbose) {
             }
             auto dr = f_cand->getStsDriftRadius(k);
-            // printf("  Add: %d   BASE   %f  %f  %f   DIR   %f  %f  %f   ALG   %f  %f  %f   RES   %f   %f\n", mod * 4 + lay, p2_base.X(),
-            // p2_base.Y(), p2_base.Z(), p2_dir.X(), p2_dir.Y(), p2_dir.Z(), u, 0., 0., dr, 0.1);
-            mille.add_measurement((mod + 1) * 10 + (lay + 1),
-                                  the_base.X() - the_track.X() * the_base.Z(),
-                                  the_base.Y() - the_track.Y() * the_base.Z(),
-                                  the_track.X() / the_track.Z(),
-                                  the_track.Y() / the_track.Z(),
-                                  straw_loc.getX(),
-                                  straw_loc.getY(),
-                                  straw_loc.getZ(),
-                                  dr,
-                                  sigma);
+            // printf(" Add: %d BASE %f %f %f DIR %f %f %f ALG %f %f %f RES %f %f\n",
+            //        mod * 4 + lay,
+            //        p2_base.X(),
+            //        p2_base.Y(),
+            //        p2_base.Z(),
+            //        p2_dir.X(),
+            //        p2_dir.Y(),
+            //        p2_dir.Z(),
+            //        u,
+            //        0.,
+            //        0.,
+            //        dr,
+            //        0.1);
+
+            auto straw_base = hsa::XYZPoint(straw_loc.getX(), straw_loc.getY(), straw_loc.getZ());
+            auto straw_dir = hsa::XYZVector(0, 1, 0);
+
+            auto plane = straw_planes.plane((mod + 1) * 100 + (lay + 1) * 10)
+                             .add_measurement(sigma, track_base, track_dir, straw_base, straw_dir, dr);
+
+            auto model = plane.model();
+
+            if (log_file.is_open()) {
+                log_file << "-PLANE " << (int)mod << ' ' << (int)lay << ' ' << straw << ' ' << (int)ud << '\n';
+                log_file << "-STRAW " << straw_base.x() << ' ' << straw_base.y() << ' ' << straw_base.z() << ' ' << straw_dir.x() << ' '
+                         << straw_dir.y() << ' ' << straw_dir.z() << '\n';
+                log_file << model;
+            }
+
+            if (qa_file.length()) {
+                h_qa_sign->Fill(model.res_sign);
+                h_qa_t_d_dist->Fill(model.track_wire_distance);
+                h_qa_drift_dist->Fill(dr);
+                h_qa_residuals->Fill(model.residual());
+                h_qa_uresiduals->Fill(model.residual() * model.res_sign);
+
+                auto plane_id = mod * 4 + lay + 1;
+                h_qa_sign_plane->Fill(model.res_sign, plane_id);
+                h_qa_t_d_dist_plane->Fill(model.track_wire_distance, plane_id);
+                h_qa_drift_dist_plane->Fill(dr, plane_id);
+                h_qa_residuals_plane->Fill(model.residual(), plane_id);
+                h_qa_uresiduals_plane->Fill(model.residual() * model.res_sign, plane_id);
+            }
+
+            if (verbose) {
+                plane.model().print_params();
+            }
         }
 
         good_vectors_count++;
-        mille.end();
+        pro_mille.end();
     }
 
     printf("Got %ld good vectors, rejected: ", good_vectors_count);
@@ -765,54 +1019,147 @@ auto library::execute(long long events) -> void
 
     if (qa_file.length()) {
         qafile = TFile::Open(qa_file.c_str(), "RECREATE");
-    }
 
-    auto can_elastics = new TCanvas("can_elastics", "can_elastics", 1200, 900);
-    can_elastics->Divide(4, 3);
-    can_elastics->cd(1);
-    h_delta_phi->Draw();
-    can_elastics->cd(2);
-    h_tan_prod->Draw();
+        if (qafile) {
+            auto can_vertex = new TCanvas("can_vertex", "can_vertex", 1200, 900);
+            can_vertex->Divide(4, 3);
 
-    // can_elastics->cd(3);
-    // h_fcand_delta->Draw("colz");
+            can_vertex->cd(1);
+            BeamX.Draw();
+            BeamX.Write();
 
-    can_elastics->cd(3);
-    h_elastic_error->Draw("text,h");
-    gPad->SetLogy();
-    can_elastics->cd(4);
-    h_elastic_mult->Draw("colz");
+            can_vertex->cd(2);
+            BeamY.Draw();
+            BeamY.Write();
 
-    can_elastics->cd(5);
-    h_fcand_txty->Draw("colz");
+            can_vertex->cd(3);
+            BeamXY.Draw("colz");
+            BeamXY.Write();
 
-    can_elastics->cd(6);
-    h_fproj_txty->Draw("colz");
+            can_vertex->cd(4);
+            BeamZ.Draw();
+            BeamZ.Write();
 
-    can_elastics->cd(7);
-    h_fproj_vert->Draw("colz");
+            can_vertex->cd(5);
+            h_vert_reco_xy->Draw("colz");
+            h_vert_reco_xy->Write();
 
-    can_elastics->cd(8);
-    h_fcand_theta_phi->Draw("colz");
+            can_vertex->cd(6);
+            h_vert_reco_z->Draw();
+            h_vert_reco_z->Write();
 
-    can_elastics->cd(9);
-    // h_el_theta_phi_all->Draw("colz");
-    h_el_theta_phi->Draw("colz");
-    // h_el_theta_phi_rejected->Draw("colz,same");
+            can_vertex->cd(7);
+            h_p1_p2_dist->Draw();
+            h_p1_p2_dist->Write();
 
-    can_elastics->cd(10);
-    h_p1_p2_dist->Draw();
+            can_vertex->cd(8);
+            h_p1_beam_dist->Draw();
+            h_p1_beam_dist->Write();
 
-    can_elastics->cd(11);
-    h_p1_beam_dist->Draw();
+            can_vertex->cd(9);
+            h_fcand_chi2_ndf->Draw();
+            h_fcand_chi2_ndf->Write();
 
-    can_elastics->cd(12);
-    h_proj_diff_theta_phi->Draw("colz");
+            can_vertex->Write();
 
-    can_elastics->Write();
+            auto can_elastics = new TCanvas("can_elastics", "can_elastics", 1200, 900);
+            can_elastics->Divide(4, 3);
+            can_elastics->cd(1);
+            h_delta_phi->Draw();
+            h_delta_phi->Write();
 
-    if (qafile) {
-        qafile->Close();
+            can_elastics->cd(2);
+            h_tan_prod->Draw();
+            h_tan_prod->Write();
+
+            // can_elastics->cd(3);
+            // h_fcand_delta->Draw("colz");
+            // h_vert_reco_xy->Write();
+
+            can_elastics->cd(3);
+            h_elastic_error->Draw("text,h");
+            h_elastic_error->Write();
+            gPad->SetLogy();
+
+            can_elastics->cd(4);
+            h_elastic_mult->Draw("colz");
+            h_elastic_mult->Write();
+
+            can_elastics->cd(5);
+            h_fcand_txty->Draw("colz");
+            h_fcand_txty->Write();
+
+            can_elastics->cd(6);
+            h_fproj_txty->Draw("colz");
+            h_fproj_txty->Write();
+
+            can_elastics->cd(7);
+            h_fproj_vert->Draw("colz");
+            h_fproj_vert->Write();
+
+            can_elastics->cd(8);
+            h_fcand_theta_phi->Draw("colz");
+            h_fcand_theta_phi->Write();
+
+            can_elastics->cd(9);
+            // h_el_theta_phi_all->Draw("colz");
+            h_el_theta_phi->Draw("colz");
+            h_el_theta_phi->Write();
+            // h_el_theta_phi_rejected->Draw("colz,same");
+
+            can_elastics->cd(12);
+            h_proj_diff_theta_phi->Draw("colz");
+            h_proj_diff_theta_phi->Write();
+
+            can_elastics->Write();
+
+            auto can_qa = new TCanvas("can_qa", "can_qa", 1500, 600);
+            can_qa->Divide(5, 2);
+
+            can_qa->cd(1);
+            h_qa_sign->Draw("h,text");
+            h_qa_sign->Write();
+
+            can_qa->cd(2);
+            h_qa_t_d_dist->Draw();
+            h_qa_t_d_dist->Write();
+
+            can_qa->cd(3);
+            h_qa_drift_dist->Draw();
+            h_qa_drift_dist->Write();
+
+            can_qa->cd(4);
+            h_qa_residuals->Draw();
+            h_qa_residuals->Write();
+
+            can_qa->cd(5);
+            h_qa_uresiduals->Draw();
+            h_qa_uresiduals->Write();
+
+            can_qa->cd(6);
+            h_qa_sign_plane->Draw("colz,text");
+            h_qa_sign_plane->Write();
+
+            can_qa->cd(7);
+            h_qa_t_d_dist_plane->Draw("colz");
+            h_qa_t_d_dist_plane->Write();
+
+            can_qa->cd(8);
+            h_qa_drift_dist_plane->Draw("colz");
+            h_qa_drift_dist_plane->Write();
+
+            can_qa->cd(9);
+            h_qa_residuals_plane->Draw("colz");
+            h_qa_residuals_plane->Write();
+
+            can_qa->cd(10);
+            h_qa_uresiduals_plane->Draw("colz");
+            h_qa_uresiduals_plane->Write();
+
+            can_qa->Write();
+
+            qafile->Close();
+        }
     }
 }
 

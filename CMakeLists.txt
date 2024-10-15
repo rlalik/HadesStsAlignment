@@ -17,26 +17,30 @@ list(APPEND CMAKE_MODULE_PATH
     ${CMAKE_SOURCE_DIR}/cmake
 )
 
-find_package(HYDRA)
-find_package(ROOT)
-
 include(FetchContent)
+
 FetchContent_Declare(MillePede
   GIT_REPOSITORY https://gitlab.desy.de/claus.kleinwort/millepede-ii.git
   GIT_TAG main
 )
 FetchContent_MakeAvailable(MillePede)
 
-add_library(Mille STATIC
-    ${millepede_SOURCE_DIR}/Mille.cc
+FetchContent_Declare(ProMille
+  GIT_REPOSITORY https://github.com/rlalik/promille
+  GIT_TAG master
 )
-target_include_directories(Mille PUBLIC ${millepede_SOURCE_DIR})
+FetchContent_MakeAvailable(ProMille)
 
-
-add_custom_target(pede
-  COMMAND make
-  WORKING_DIRECTORY ${millepede_SOURCE_DIR}
+FetchContent_Declare(
+  hades-tools
+  GIT_REPOSITORY https://git.gsi.de/r.lalik/hades-tools
+  GIT_TAG master
 )
+FetchContent_MakeAvailable(hades-tools)
+list(APPEND CMAKE_MODULE_PATH ${hades-tools_SOURCE_DIR}/cmake)
+
+find_package(HYDRA)
+find_package(ROOT)
 
 # ---- Declare library ----
 
@@ -54,12 +58,9 @@ target_include_directories(
 target_compile_features(HadesStsAlignment_lib PUBLIC cxx_std_17)
 
 target_link_libraries(HadesStsAlignment_lib
-  PUBLIC ROOT::Core ROOT::Hist ROOT::Graf ROOT::Gpad ROOT::Physics ROOT::GenVector
-         HYDRA::Hydra HYDRA::Forward HYDRA::Sts HYDRA::FRpc HYDRA::Dst HYDRA::Emc
-         HYDRA::Tof HYDRA::Rpc HYDRA::iTof HYDRA::Start HYDRA::Rich HYDRA::Mdc
-         HYDRA::MdcTrackD HYDRA::MdcTrackG HYDRA::PionTracker HYDRA::Wall
-         HYDRA::Kalman HYDRA::Shower HYDRA::Particle
-         Mille)
+  PUBLIC HYDRA::all
+         ROOT::Core ROOT::Hist ROOT::Graf ROOT::Gpad ROOT::Physics ROOT::GenVector
+         Mille promille::promille)
 
 # ---- Declare executable ----
 
@@ -85,6 +86,15 @@ target_link_libraries(HadesParamUpdater_exe PRIVATE HadesStsAlignment_lib)
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
   include(cmake/install-rules.cmake)
+endif()
+
+# ---- Examples ----
+
+if(PROJECT_IS_TOP_LEVEL)
+  option(BUILD_EXAMPLES "Build examples tree." "${HadesStsAlignment_DEVELOPER_MODE}")
+  if(BUILD_EXAMPLES)
+    add_subdirectory(example)
+  endif()
 endif()
 
 # ---- Developer mode ----

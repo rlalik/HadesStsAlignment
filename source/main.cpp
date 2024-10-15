@@ -4,20 +4,34 @@
 #include <hloop.h>
 
 // System
+#include <filesystem>
 #include <iostream>
 #include <string>
 
 #include <getopt.h>
 
+namespace fs = std::filesystem;
+
+bool replace(std::string& str, const std::string& from, const std::string& to)
+{
+    size_t start_pos = str.find(from);
+    if (start_pos == std::string::npos)
+        return false;
+    str.replace(start_pos, from.length(), to);
+    return true;
+}
+
 auto main(int argc, char* argv[]) -> int
 {
     int verbose {0};
     int events {0};
-    int hack {0};
+    int project {0};
     int beam_tilt {0};
+    int all_tracks {0};
     std::string root_par_file;
     std::string ascii_par_file = "feb22_dst_params.txt";
     std::string output_file = "sts_alignment.bin";
+    std::string log_file_name;
     std::string qa_file;
     float sigma {0.3};
 
@@ -26,13 +40,15 @@ auto main(int argc, char* argv[]) -> int
         static struct option long_options[] = {/* These options set a flag. */
                                                // {"verbose", no_argument, &verbose, 1},
                                                // {"brief", no_argument, &verbose, 0},
-                                               {"hack", no_argument, &hack, 1},
+                                               {"project", no_argument, &project, 1},
                                                {"tilt", no_argument, &beam_tilt, 1},
+                                               {"all", no_argument, &all_tracks, 1},
 
                                                /* These options don’t set a flag.
                                                 *              We distinguish them by their indices. */
                                                {"events", required_argument, 0, 'e'},
                                                {"ascii", required_argument, 0, 'a'},
+                                               {"log", required_argument, 0, 'l'},
                                                {"root", required_argument, 0, 'r'},
                                                {"sigma", required_argument, 0, 's'},
                                                {"output", required_argument, 0, 'o'},
@@ -43,7 +59,7 @@ auto main(int argc, char* argv[]) -> int
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "e:a:r:s:v:o:q:", long_options, &option_index);
+        c = getopt_long(argc, argv, "e:a:l::r:s:vo:q:", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1)
@@ -68,6 +84,10 @@ auto main(int argc, char* argv[]) -> int
                 ascii_par_file = optarg;
                 break;
 
+            case 'l':
+                log_file_name = (optarg == nullptr) ? "sts_alignment.log" : optarg;
+                break;
+
             case 'r':
                 root_par_file = optarg;
                 break;
@@ -85,7 +105,7 @@ auto main(int argc, char* argv[]) -> int
                 break;
 
             case 'v':
-                verbose = atoi(optarg);
+                verbose = true;  // atoi(optarg);
                 printf("SET VERBOSE LEVEL %d\n", verbose);
                 break;
 
@@ -106,6 +126,8 @@ auto main(int argc, char* argv[]) -> int
 
     HLoop* loop = new HLoop(kTRUE);
 
+    std::string first_file;
+
     /* Print any remaining command line arguments (not options). */
     if (optind < argc) {
         Bool_t ret;
@@ -115,9 +137,11 @@ auto main(int argc, char* argv[]) -> int
             printf("INPUT: %s\n", infile.Data());
             if (infile.Contains(","))
                 ret = loop->addMultFiles(infile);
-            else if (infile.Contains(".root"))
+            else if (infile.Contains(".root")) {
+                if (!first_file.length())
+                    first_file = infile;
                 ret = loop->addFiles(infile);
-            else
+            } else
                 ret = loop->addFilesList(infile);
 
             if (!ret) {
@@ -128,12 +152,15 @@ auto main(int argc, char* argv[]) -> int
     }
 
     library::verbose = verbose;
-    library lib(loop, output_file, root_par_file, ascii_par_file);
+    library lib(loop, output_file, root_par_file, ascii_par_file, log_file_name);
 
     lib.qa_file = qa_file;
+    replace(lib.qa_file, "%f", fs::path(first_file).filename());
+
     lib.sigma = sigma;
-    lib.hack = hack;
+    lib.project = project;
     lib.beam_tilt = beam_tilt;
+    lib.all_tracks = all_tracks;
 
     lib.execute(events);
 

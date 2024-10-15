@@ -1,14 +1,24 @@
 #pragma once
 
-#include <string>
+#include "straw_residual_model.hpp"
 
-#include <Rtypes.h>
-#include <TH1.h>
+// promille
+#include <promille/euler_angles.hpp>
+#include <promille/promille.hpp>
+
+// Hydra
 #include <forwarddef.h>
 #include <frpcdef.h>
-#include <stsdef.h>
 
-#include "mille_builder/mille_builder.hpp"
+// ROOT
+#include <Rtypes.h>
+#include <TH1.h>
+#include <TH2.h>
+
+// system
+#include <string>
+
+#include <stsdef.h>
 
 class HLoop;
 class HCategory;
@@ -40,7 +50,11 @@ struct library
     /**
      * @brief Simply initializes the name member to the name of the project
      */
-    library(HLoop* loop, const std::string& output_file, const std::string& root_par, const std::string& ascii_par);
+    library(HLoop* loop,
+            const std::string& output_file,
+            const std::string& root_par,
+            const std::string& ascii_par,
+            const std::string& log_file_name);
 
     auto check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Float_t thetap_diff_min, Float_t thetap_diff_max)
         -> std::tuple<ElasticsErrorCode, float, float>;
@@ -60,11 +74,14 @@ struct library
     // run paramaters
     std::string qa_file;
     float sigma {0};
-    bool hack {false};
+    bool project {false};
     bool beam_tilt {false};
+    bool all_tracks {false};
 
     // members
     std::string output_file;
+    std::ofstream log_file;
+
     HLoop* loop;
 
     HCategory* fGeantKine;
@@ -86,9 +103,11 @@ struct library
 
     TH1I BeamX;
     TH1I BeamY;
+    TH2I BeamXY;
     TH1I BeamZ;
 
-    mb::mille_builder<mb::euler::zyz> mille;
+    promille::promille<float> pro_mille;
+    decltype(pro_mille.make_model_planes<hsa::sts_residual<float, promille::euler::zyz>>()) straw_planes;
 
     static int verbose;
 };

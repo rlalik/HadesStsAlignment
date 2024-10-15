@@ -4,10 +4,23 @@
 
 project(HadesStsAlignmentTests LANGUAGES CXX)
 
+find_package(GTest)
+
+if(TARGET GTest::gtest_main)
+  # new cmake provided
+  set(GTEST_TRG GTest::gtest_main)
+else()
+  # old cmake and pc files
+  set(GTEST_TRG gtest gtest_main)
+endif()
+
 # ---- Tests ----
 
-add_executable(HadesStsAlignment_test source/HadesStsAlignment_test.cpp)
-target_link_libraries(HadesStsAlignment_test PRIVATE HadesStsAlignment_lib)
+add_executable(HadesStsAlignment_test
+    source/test_straw_residuals_model.cpp
+    source/test_derivatives.cpp
+)
+target_link_libraries(HadesStsAlignment_test PRIVATE HadesStsAlignment_lib ROOT::GenVector promille::promille ${GTEST_TRG})
 target_compile_features(HadesStsAlignment_test PRIVATE cxx_std_17)
 
 add_test(NAME HadesStsAlignment_test COMMAND HadesStsAlignment_test)

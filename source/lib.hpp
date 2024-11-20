@@ -106,7 +106,7 @@ struct library
     TH2I BeamXY;
     TH1I BeamZ;
 
-    promille::promille<float> pro_mille;
+    promille::mille<float> pro_mille;
     decltype(pro_mille.make_model_planes<hsa::sts_residual<float, promille::euler::zyz>>()) straw_planes;
 
     static int verbose;

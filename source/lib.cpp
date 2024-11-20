@@ -49,6 +49,9 @@
 #include <TStyle.h>
 #include <TText.h>
 
+// look & feel libs
+#include <fmt/core.h>
+
 // System
 #include <iostream>
 #include <vector>
@@ -56,9 +59,9 @@
 using std::cout;
 using std::endl;
 
-int library::verbose = 0;
+int forward_aligner_library::verbose = 0;
 
-library::library(HLoop* loop,
+forward_aligner_library::forward_aligner_library(HLoop* loop,
                  const std::string& output_file,
                  const std::string& root_par,
                  const std::string& ascii_par,
@@ -421,8 +424,8 @@ library::library(HLoop* loop,
     }
 }
 
-auto library::check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Float_t thetap_diff_min, Float_t thetap_diff_max)
-    -> std::tuple<ElasticsErrorCode, float, float>
+auto forward_aligner_library::check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Float_t thetap_diff_min, Float_t thetap_diff_max)
+-> std::tuple<ElasticsErrorCode, float, float>
 {
     auto particle_cand_cnt = fParticleCand->getEntries();
     auto forward_cand_cnt = fForwardCand->getEntries();
@@ -476,7 +479,7 @@ auto library::check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Floa
     return {NOACC, t_phi_diff, t_tan_theta_product};
 }
 
-auto library::check_elastics_hf(Float_t phi1,
+auto forward_aligner_library::check_elastics_hf(Float_t phi1,
                                 Float_t theta1,
                                 Float_t phi2,
                                 Float_t theta2,
@@ -515,7 +518,7 @@ auto library::check_elastics_hf(Float_t phi1,
     return {NOACC, t_phi_diff, t_tan_theta_product};
 }
 
-auto library::execute(long long events) -> void
+auto forward_aligner_library::execute(long long events, long long first) -> void
 {
     // Popup the GUI...
     gStyle->SetOptStat(1);
@@ -592,7 +595,7 @@ auto library::execute(long long events) -> void
         h_qa_uresiduals_plane = new TH2I("h_qa_uresiduals_plane", "h_qa_uresiduals_plane;residuals [mm];plane;counts", 100, -1, 1, 8, 1, 9);
     }
 
-    auto nevts = events == 0 ? loop->getEntries() : min(events, loop->getEntries());
+    auto nevts = events == 0 ? loop->getEntries() : min(first + events, loop->getEntries());
 
     bool sim = (fGeantKine != nullptr);
 
@@ -643,10 +646,10 @@ auto library::execute(long long events) -> void
     std::cout << '\n';
     std::cout << " Project: " << project << "\n Events to analyze: " << nevts << "\n============= CONFIG =============\n";
 
-    for (int event = 0l; event < nevts; ++event) {
+    for (auto event = first; event < nevts; ++event) {
         loop->nextEvent(event);
         if (event % 10000 == 0)
-            cout << event << "  " << 100.0 * event / nevts << "%" << endl;
+            fmt::print("{:d}/{:d}  {:.2f}%\n", event, nevts, 100.0 * event / nevts);
 
         auto particle_cand_cnt = fParticleCand->getEntries();
         auto forward_cand_cnt = fForwardCand->getEntries();
@@ -1163,7 +1166,7 @@ auto library::execute(long long events) -> void
     }
 }
 
-auto library::find_beam_avgs(long long nevents) -> HGeomVector
+auto forward_aligner_library::find_beam_avgs(long long nevents) -> HGeomVector
 {
     decltype(nevents) cnt = 0;
     for (int event = 0l; event < nevents; ++event) {

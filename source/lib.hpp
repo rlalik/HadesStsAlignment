@@ -34,7 +34,7 @@ class HStsCalPar;
  * test the implementation for the executable, because the logic is nicely
  * separated from the command-line logic implemented in the main function.
  */
-struct library
+struct forward_aligner_library
 {
     enum ElasticsErrorCode
     {
@@ -50,11 +50,11 @@ struct library
     /**
      * @brief Simply initializes the name member to the name of the project
      */
-    library(HLoop* loop,
-            const std::string& output_file,
-            const std::string& root_par,
-            const std::string& ascii_par,
-            const std::string& log_file_name);
+    forward_aligner_library(HLoop* loop,
+                            const std::string& output_file,
+                            const std::string& root_par,
+                            const std::string& ascii_par,
+                            const std::string& log_file_name);
 
     auto check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Float_t thetap_diff_min, Float_t thetap_diff_max)
         -> std::tuple<ElasticsErrorCode, float, float>;
@@ -69,7 +69,7 @@ struct library
                            Float_t thetap_diff_max) -> std::tuple<ElasticsErrorCode, float, float>;
 
     auto find_beam_avgs(long long nevents) -> HGeomVector;
-    auto execute(long long events = 0) -> void;
+    auto execute(long long events = 0, long long first = 0) -> void;
 
     // run paramaters
     std::string qa_file;

@@ -45,9 +45,6 @@ set(FMT_TARGET $<BUILD_INTERFACE:fmt::fmt-header-only>)
 find_package(HYDRA)
 find_package(ROOT)
 
-option(BUILD_APPS "Build standalone applications." ON)
-
-if (BUILD_APPS)
 # ---- Declare library ----
 
 add_library(
@@ -71,7 +68,9 @@ target_link_libraries(HadesStsAlignment_lib
 )
 
 # ---- Declare executable ----
+option(BUILD_APPS "Build standalone applications." ON)
 
+if (BUILD_APPS)
   add_executable(HadesStsAlignment_exe source/main.cpp)
   add_executable(HadesStsAlignment::exe ALIAS HadesStsAlignment_exe)
 

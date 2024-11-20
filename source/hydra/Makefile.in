@@ -1,0 +1,22 @@
+##############################################################################
+#
+#  Makefile for Hydra library libForwardAligner.so
+#
+#  This makefile contains all definitions local to this module. All
+#  general definitions are included from makefiles in $(HADDIR).
+#
+##############################################################################
+
+INSTALL_DIR  ?= $(MYHADDIR)
+BUILD_DIR    ?= @CMAKE_BINARY_DIR@/hydra/build
+
+LIB_NAME     := ForwardAligner
+
+SOURCE_FILES := hydra/hforwardaligner.cc
+
+include $(HADDIR)/hades.def.mk
+
+INC_DIRS     += @promille_SOURCE_DIR@/include @tabulate_SOURCE_DIR@/include @fmt_SOURCE_DIR@/include
+CPP_FLAGS    += -DPLAIN_LOOK
+
+include $(HADDIR)/hades.module.mk

@@ -27,7 +27,7 @@ FetchContent_MakeAvailable(MillePede)
 
 FetchContent_Declare(ProMille
   GIT_REPOSITORY https://github.com/rlalik/promille
-  GIT_TAG master
+  GIT_TAG renaming
 )
 FetchContent_MakeAvailable(ProMille)
 
@@ -95,6 +95,31 @@ if(PROJECT_IS_TOP_LEVEL)
   if(BUILD_EXAMPLES)
     add_subdirectory(example)
   endif()
+endif()
+
+# ---- Hydra module ----
+
+option(BUILD_HYDRA_MODULE "Build HYDRA moduke." ON)
+if (BUILD_HYDRA_MODULE)
+  if (NOT DEFINED ENV{MYHADDIR})
+    message(FATAL_ERROR "MYHADDIR must be exported for building Hydra module.")
+  endif()
+
+  configure_file(${CMAKE_SOURCE_DIR}/source/hydra/Makefile.in ${CMAKE_BINARY_DIR}/hydra/Makefile @ONLY)
+
+  add_custom_target(ForwardAligner
+    ALL
+    COMMAND make -f ${CMAKE_BINARY_DIR}/hydra/Makefile --no-silent
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/source
+    COMMENT "Running custom Makefile when hydra module changes"
+  )
+
+  install(PROGRAMS ${CMAKE_BINARY_DIR}/hydra/build/lib/libForwardAligner.so
+        DESTINATION $ENV{MYHADDIR}/lib
+  )
+  install(FILES ${CMAKE_SOURCE_DIR}/source/hydra/hforwardaligner.h
+        DESTINATION $ENV{MYHADDIR}/include
+  )
 endif()
 
 # ---- Developer mode ----

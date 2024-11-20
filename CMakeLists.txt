@@ -36,6 +36,9 @@ list(APPEND CMAKE_MODULE_PATH ${hades-tools_SOURCE_DIR}/cmake)
 find_package(HYDRA)
 find_package(ROOT)
 
+option(BUILD_APPS "Build standalone applications." ON)
+
+if (BUILD_APPS)
 # ---- Declare library ----
 
 add_library(
@@ -58,20 +61,26 @@ target_link_libraries(HadesStsAlignment_lib
 
 # ---- Declare executable ----
 
-add_executable(HadesStsAlignment_exe source/main.cpp)
-add_executable(HadesStsAlignment::exe ALIAS HadesStsAlignment_exe)
+  add_executable(HadesStsAlignment_exe source/main.cpp)
+  add_executable(HadesStsAlignment::exe ALIAS HadesStsAlignment_exe)
 
-set_property(TARGET HadesStsAlignment_exe PROPERTY OUTPUT_NAME HadesStsAlignment)
-target_compile_features(HadesStsAlignment_exe PRIVATE cxx_std_17)
-target_link_libraries(HadesStsAlignment_exe PRIVATE HadesStsAlignment_lib)
+  set_property(TARGET HadesStsAlignment_exe PROPERTY OUTPUT_NAME HadesStsAlignment)
+  target_compile_features(HadesStsAlignment_exe PRIVATE cxx_std_17)
+  target_link_libraries(HadesStsAlignment_exe PRIVATE HadesStsAlignment_lib)
 
 
-add_executable(HadesParamUpdater_exe source/param_updater.cpp)
-add_executable(HadesParamUpdater::exe ALIAS HadesStsAlignment_exe)
+  add_executable(HadesParamUpdater_exe source/param_updater.cpp)
+  add_executable(HadesParamUpdater::exe ALIAS HadesStsAlignment_exe)
 
-set_property(TARGET HadesParamUpdater_exe PROPERTY OUTPUT_NAME HadesParamUpdater)
-target_compile_features(HadesParamUpdater_exe PRIVATE cxx_std_17)
-target_link_libraries(HadesParamUpdater_exe PRIVATE HadesStsAlignment_lib)
+  set_property(TARGET HadesParamUpdater_exe PROPERTY OUTPUT_NAME HadesParamUpdater)
+  target_compile_features(HadesParamUpdater_exe PRIVATE cxx_std_17)
+  target_link_libraries(HadesParamUpdater_exe PRIVATE HadesStsAlignment_lib)
+
+  install(
+    TARGETS HadesStsAlignment_exe HadesParamUpdater_exe
+    RUNTIME COMPONENT HadesStsAlignment_Runtime
+  )
+endif()
 
 # ---- Install rules ----
 
@@ -90,7 +99,7 @@ endif()
 
 # ---- Hydra module ----
 
-option(BUILD_HYDRA_MODULE "Build HYDRA moduke." ON)
+option(BUILD_HYDRA_MODULE "Build HYDRA module." ON)
 if (BUILD_HYDRA_MODULE)
   if (NOT DEFINED ENV{MYHADDIR})
     message(FATAL_ERROR "MYHADDIR must be exported for building Hydra module.")

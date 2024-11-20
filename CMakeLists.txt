@@ -33,6 +33,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(hades-tools)
 list(APPEND CMAKE_MODULE_PATH ${hades-tools_SOURCE_DIR}/cmake)
 
+set(FMT_INSTALL OFF)
+FetchContent_Declare(
+  fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt
+  GIT_TAG 11.0.2
+)
+FetchContent_MakeAvailable(fmt)
+set(FMT_TARGET $<BUILD_INTERFACE:fmt::fmt-header-only>)
+
 find_package(HYDRA)
 find_package(ROOT)
 
@@ -57,7 +66,9 @@ target_compile_features(HadesStsAlignment_lib PUBLIC cxx_std_17)
 target_link_libraries(HadesStsAlignment_lib
   PUBLIC HYDRA::all
          ROOT::Core ROOT::Hist ROOT::Graf ROOT::Gpad ROOT::Physics ROOT::GenVector
-         promille::promille)
+         promille::promille
+         ${FMT_TARGET}
+)
 
 # ---- Declare executable ----
 

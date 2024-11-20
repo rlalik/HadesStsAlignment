@@ -56,18 +56,6 @@ struct forward_aligner_library
                             const std::string& ascii_par,
                             const std::string& log_file_name);
 
-    auto check_elastics_hf(Float_t phi_diff_min, Float_t phi_diff_max, Float_t thetap_diff_min, Float_t thetap_diff_max)
-        -> std::tuple<ElasticsErrorCode, float, float>;
-
-    auto check_elastics_hf(Float_t phi1,
-                           Float_t theta1,
-                           Float_t phi2,
-                           Float_t theta2,
-                           Float_t phi_diff_min,
-                           Float_t phi_diff_max,
-                           Float_t thetap_diff_min,
-                           Float_t thetap_diff_max) -> std::tuple<ElasticsErrorCode, float, float>;
-
     auto find_beam_avgs(long long nevents) -> HGeomVector;
     auto execute(long long events = 0, long long first = 0) -> void;
 
@@ -88,7 +76,6 @@ struct forward_aligner_library
     HCategory* fStsCal;
     HCategory* fFRpcClus;
     HCategory* fForwardCand;
-    HCategory* fParticleCand;
 
     HStsGeomPar* pStrawGeomPar;
     HStsCalPar* pCalPar;  // cal run par

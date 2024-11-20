@@ -42,6 +42,13 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(fmt)
 set(FMT_TARGET $<BUILD_INTERFACE:fmt::fmt-header-only>)
 
+FetchContent_Declare(
+  tabulate
+  GIT_REPOSITORY https://github.com/p-ranav/tabulate
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(tabulate)
+
 find_package(HYDRA)
 find_package(ROOT)
 
@@ -64,7 +71,7 @@ target_link_libraries(HadesStsAlignment_lib
   PUBLIC HYDRA::all
          ROOT::Core ROOT::Hist ROOT::Graf ROOT::Gpad ROOT::Physics ROOT::GenVector
          promille::promille
-         ${FMT_TARGET}
+         ${FMT_TARGET} tabulate::tabulate
 )
 
 # ---- Declare executable ----

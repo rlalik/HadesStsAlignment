@@ -10,6 +10,12 @@
 #include <Math/Transform3D.h>
 #include <Math/Vector3D.h>
 
+// look&feel
+#if !defined(PLAIN_LOOK)
+  #include <tabulate/table.hpp>
+  // #include <fmt/core.h>
+#endif
+
 /*
  * Rotation matrix, see https://mathworld.wolfram.com/EulerAngles.html (48..50)
  * for definitions.
@@ -121,21 +127,35 @@ struct sts_residual final : promille::residual_model_base<T, Nlocals, Nglobals>
 
     auto print_params() const -> void
     {
-        // std::cout << "=====\nGLOBAL: Tg" << global_translation << "  Rg:" << global_rotation << "        Tl" << local_translation
-        //           << "  Rl: " << local_rotation << "        Tc" << correction_translation << "  Rc:" << correction_rotation
-        //           << "\nTOTAL : Tt" << total_translation << "  Rt" << total_rotation << "\nLOCAL : Sb" << straw_base_loc << "->"
-        //           << straw_base_lab << "  Sd" << straw_dir_loc << "->" << straw_dir_lab
-        //           << "\n        Tb" << track_base << "  Td" << track_dir << "  dr=" << drift_radius << "  |T-W|=" << track_wire_distance
-        //           << "\n=====\n";
+#if !defined(PLAIN_LOOK)
+        tabulate::Table transform_matrices_summary;
+        transform_matrices_summary.add_row({"Global Transform", "Local Transform", "Correction Transform", "Total Transform", "Inverse Total Transform"});
+        transform_matrices_summary.add_row(tabulate::RowStream{} << global_transform << local_transform << correction_transform << total_transform << inverse_total_transform);
 
+        transform_matrices_summary[0][0].format().width(20);
+        transform_matrices_summary[0][1].format().width(50);
+        transform_matrices_summary[0][2].format().width(20);
+        transform_matrices_summary[0][3].format().width(50);
+        transform_matrices_summary[0][4].format().width(50);
+        std::cout << transform_matrices_summary << '\n';
+#else
         std::cout << "=====\nGT: " << global_transform << "\nLT: " << local_transform << "\nCT: " << correction_transform
                   << "\nTT:" << total_transform << "\nIT:" << inverse_total_transform << "\nLOCAL : Sb" << straw_base_loc << "->"
                   << straw_base_lab << "  Sd" << straw_dir_loc << "->" << straw_dir_lab << "\n        Tb" << track_base << "  Td"
                   << track_dir << "  dr=" << drift_radius << "  |T-W|=" << track_wire_distance << "\n=====\n";
+#endif
+
+        // std::cout << "=====\nGT: " << global_transform << "\nLT: " << local_transform << "\nCT: " << correction_transform
+        //           << "\nTT:" << total_transform << "\nIT:" << inverse_total_transform << "\nLOCAL : Sb" << straw_base_loc << "->"
+        //           << straw_base_lab << "  Sd" << straw_dir_loc << "->" << straw_dir_lab << "\n        Tb" << track_base << "  Td"
+        //           << track_dir << "  dr=" << drift_radius << "  |T-W|=" << track_wire_distance << "\n=====\n";
+
+        std::cout << "LOCAL : Sb" << straw_base_loc << "->"
+        << straw_base_lab << "  Sd" << straw_dir_loc << "->" << straw_dir_lab << "\n        Tb" << track_base << "  Td"
+        << track_dir << "  dr=" << drift_radius << "  |T-W|=" << track_wire_distance << "\n=====\n";
 
         this->print();
 
-        std::cout << "\n=====\n";
     }
 
     template<typename Type>
@@ -178,7 +198,11 @@ struct sts_residual final : promille::residual_model_base<T, Nlocals, Nglobals>
         return std::fabs((track_base - straw_base_lab).Dot(track_dir.Cross(straw_dir_lab)) / track_dir.Cross(straw_dir_lab).R());
     }
 
-    auto residual() const -> T override { return res_sign * (track_wire_distance - drift_radius); }
+    auto residual() const -> T override {
+        // fmt::print(":: In {}: res_sign={}, twd={}  dr={}\n", __PRETTY_FUNCTION__, res_sign, track_wire_distance, drift_radius);
+        return res_sign * (track_wire_distance - drift_radius);
+
+    }
 
     auto recalculate(XYZPoint track_base, XYZVector track_dir, XYZPoint straw_base, XYZVector straw_dir, T dr) -> void
     {

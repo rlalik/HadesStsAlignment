@@ -20,7 +20,7 @@ add_executable(HadesStsAlignment_test
     source/test_straw_residuals_model.cpp
     source/test_derivatives.cpp
 )
-target_link_libraries(HadesStsAlignment_test PRIVATE HadesStsAlignment_lib ROOT::GenVector promille::promille ${GTEST_TRG})
+target_link_libraries(HadesStsAlignment_test PRIVATE HadesStsAlignment_lib ROOT::GenVector promille::promille ${GTEST_TRG} ${FMT_TARGET} tabulate::tabulate)
 target_compile_features(HadesStsAlignment_test PRIVATE cxx_std_17)
 
 add_test(NAME HadesStsAlignment_test COMMAND HadesStsAlignment_test)

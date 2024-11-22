@@ -71,7 +71,7 @@ target_link_libraries(HadesStsAlignment_lib
   PUBLIC HYDRA::all
          ROOT::Core ROOT::Hist ROOT::Graf ROOT::Gpad ROOT::Physics ROOT::GenVector
          promille::promille
-         ${FMT_TARGET} tabulate::tabulate
+  PRIVATE ${FMT_TARGET} tabulate::tabulate
 )
 
 # ---- Declare executable ----
@@ -83,7 +83,7 @@ if (BUILD_APPS)
 
   set_property(TARGET HadesStsAlignment_exe PROPERTY OUTPUT_NAME HadesStsAlignment)
   target_compile_features(HadesStsAlignment_exe PRIVATE cxx_std_17)
-  target_link_libraries(HadesStsAlignment_exe PRIVATE HadesStsAlignment_lib)
+  target_link_libraries(HadesStsAlignment_exe PRIVATE HadesStsAlignment_lib tabulate::tabulate)
 
 
   add_executable(HadesParamUpdater_exe source/param_updater.cpp)
@@ -91,12 +91,7 @@ if (BUILD_APPS)
 
   set_property(TARGET HadesParamUpdater_exe PROPERTY OUTPUT_NAME HadesParamUpdater)
   target_compile_features(HadesParamUpdater_exe PRIVATE cxx_std_17)
-  target_link_libraries(HadesParamUpdater_exe PRIVATE HadesStsAlignment_lib)
-
-  install(
-    TARGETS HadesStsAlignment_exe HadesParamUpdater_exe
-    RUNTIME COMPONENT HadesStsAlignment_Runtime
-  )
+  target_link_libraries(HadesParamUpdater_exe PRIVATE HadesStsAlignment_lib tabulate::tabulate)
 endif()
 
 # ---- Install rules ----

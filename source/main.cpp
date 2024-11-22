@@ -24,7 +24,8 @@ bool replace(std::string& str, const std::string& from, const std::string& to)
 auto main(int argc, char* argv[]) -> int
 {
     int verbose {0};
-    int events {0};
+    long events {0};
+    long first {0};
     int project {0};
     int beam_tilt {0};
     int all_tracks {0};
@@ -46,20 +47,21 @@ auto main(int argc, char* argv[]) -> int
 
                                                /* These options don’t set a flag.
                                                 *              We distinguish them by their indices. */
-                                               {"events", required_argument, 0, 'e'},
                                                {"ascii", required_argument, 0, 'a'},
+                                               {"events", required_argument, 0, 'e'},
+                                               {"first", required_argument, 0, 'f'},
                                                {"log", required_argument, 0, 'l'},
+                                               {"output", required_argument, 0, 'o'},
+                                               {"dump-param", required_argument, 0, 'p'},
+                                               {"qafile", required_argument, 0, 'q'},
                                                {"root", required_argument, 0, 'r'},
                                                {"sigma", required_argument, 0, 's'},
-                                               {"output", required_argument, 0, 'o'},
-                                               {"qafile", required_argument, 0, 'q'},
-                                               {"dump-param", required_argument, 0, 'p'},
                                                {"verbose", no_argument, 0, 'v'},
                                                {0, 0, 0, 0}};
         /* getopt_long stores the option index here. */
         int option_index = 0;
 
-        c = getopt_long(argc, argv, "e:a:l::r:s:vo:q:", long_options, &option_index);
+        c = getopt_long(argc, argv, "a:e:f:l:o:p:q:r:s:v", long_options, &option_index);
 
         /* Detect the end of the options. */
         if (c == -1)
@@ -78,6 +80,10 @@ auto main(int argc, char* argv[]) -> int
 
             case 'e':
                 events = atol(optarg);
+                break;
+
+            case 'f':
+                first = atol(optarg);
                 break;
 
             case 'a':
@@ -145,24 +151,29 @@ auto main(int argc, char* argv[]) -> int
                 ret = loop->addFilesList(infile);
 
             if (!ret) {
-                std::cerr << "READBACK: ERROR : cannot find inputfiles : " << infile.Data() << endl;
+                std::cerr << "READBACK: ERROR : cannot find inputfiles : " << infile.Data() << std::endl;
                 std::exit(EXIT_FAILURE);
             }
         }
     }
 
-    library::verbose = verbose;
-    library lib(loop, output_file, root_par_file, ascii_par_file, log_file_name);
+    hsa::forward_aligner_library::verbose = verbose;
+    hsa::forward_aligner_library lib(loop, output_file, log_file_name);
 
-    lib.qa_file = qa_file;
-    replace(lib.qa_file, "%f", fs::path(first_file).filename());
+    replace(qa_file, "%f", fs::path(first_file).filename());
+    lib.set_qa_file(qa_file.c_str());
+
+    if (!lib.standalone_init(root_par_file, ascii_par_file))
+        abort();
+    if (!lib.model_init(hsa::free_mask_globals, hsa::free_mask_locals))
+        abort();
 
     lib.sigma = sigma;
     lib.project = project;
     lib.beam_tilt = beam_tilt;
     lib.all_tracks = all_tracks;
 
-    lib.execute(events);
+    lib.execute(events, first);
 
     return 0;
 }

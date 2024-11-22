@@ -11,7 +11,6 @@
 #include <frpcdef.h>
 
 // ROOT
-#include <Rtypes.h>
 #include <TH1.h>
 #include <TH2.h>
 
@@ -25,6 +24,129 @@ class HCategory;
 class HGeomVector;
 class HStsGeomPar;
 class HStsCalPar;
+
+namespace hsa
+{
+// clang-format off
+    /*
+     * Normal parameters with a single dimension straw marked as free
+     */
+    static std::array<promille::Kind, 12> free_mask_globals[2][4] = {
+        {
+            {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            },
+        },{
+            {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            }, {
+                promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+                promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED
+            },
+        }};
+// clang-format on
+
+// // clang-format off
+// std::array<promille::Kind, 12> free_mask_globals[2][4] = {
+//     {
+//         {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         }, {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         }, {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         }, {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         },
+//     },{
+//         {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         }, {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         }, {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         }, {
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED,
+//             promille::Kind::FIXED, promille::Kind::FIXED
+//         },
+//     }};
+// // clang-format on
+
+static std::array<promille::Kind, 4> free_mask_locals[2][4] = {
+    {
+        {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED},
+        {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE},
+        {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE},
+        {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED},
+    },
+    {
+        {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED},
+        {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FREE},
+        {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+        {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+    }};
+
+// std::array<promille::Kind, 4> free_mask_locals[2][4] = {
+//     {
+//         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED},
+//         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+//         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+//         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED},
+//     },
+//     {
+//         {promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED, promille::Kind::FIXED},
+//         {promille::Kind::FIXED, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FIXED, promille::Kind::FIXED},
+//     }};
+
+// std::array<promille::Kind, 4> free_mask_locals[2][4] = {
+//     {
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//     },
+//     {
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//         {promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE, promille::Kind::FREE},
+//     }};
+
+struct aligner_qa;
 
 /**
  * @brief The core implementation of the executable
@@ -50,17 +172,22 @@ struct forward_aligner_library
     /**
      * @brief Simply initializes the name member to the name of the project
      */
-    forward_aligner_library(HLoop* loop,
-                            const std::string& output_file,
-                            const std::string& root_par,
-                            const std::string& ascii_par,
-                            const std::string& log_file_name);
+    forward_aligner_library(HLoop* loop, const std::string& output_file, const std::string& log_file_name);
+    ~forward_aligner_library();
+
+    auto set_qa_file(const char* qafile) -> void;
+
+    auto standalone_init(const std::string& root_par, const std::string& ascii_par) -> bool;
+    auto library_init() -> bool;
+
+    auto model_init(std::array<promille::Kind, 12> free_mask_globals[2][4], std::array<promille::Kind, 4> free_mask_locals[2][4]) -> bool;
 
     auto find_beam_avgs(long long nevents) -> HGeomVector;
     auto execute(long long events = 0, long long first = 0) -> void;
 
+    auto process_event(unsigned long event) -> int;
+
     // run paramaters
-    std::string qa_file;
     float sigma {0};
     bool project {false};
     bool beam_tilt {false};
@@ -97,4 +224,9 @@ struct forward_aligner_library
     decltype(pro_mille.make_model_planes<hsa::sts_residual<float, promille::euler::zyz>>()) straw_planes;
 
     static int verbose;
+    aligner_qa* qa {nullptr};
+    std::array<long, 10> rejected = {0};
+    bool sim {false};
 };
+
+};  // namespace hsa
